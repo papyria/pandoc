@@ -16,6 +16,10 @@ upstream pull request, and we only carry it until a pandoc release includes it.
 | `fix-*` | One feature branch per patch, branched from upstream `main`. It is the head branch of that patch's upstream PR. |
 | `X.Y-papyria` | The latest pandoc release tag `X.Y`, with every patch that release lacks cherry-picked onto it (`git cherry-pick -x`). This is what we build and deploy. |
 
+To sync `main`, run `git fetch upstream && git merge upstream/main` and push.
+This never needs a force-push. Upstream's `.gitignore` ignores top-level files with a dot in their
+name, so this file was added with `git add -f`. Don't change `.gitignore`.
+
 We never build from upstream `main`, because it ships unreleased changes we
 have not asked for. We build from a release with our patches added.
 
