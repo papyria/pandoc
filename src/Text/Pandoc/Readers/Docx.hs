@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards     #-}
 {-# LANGUAGE FlexibleContexts  #-}
@@ -269,6 +268,8 @@ parPartToText (PlainRun run)             = runToText run
 parPartToText (InternalHyperLink _ _ children) =
   T.concat $ map parPartToText children
 parPartToText (ExternalHyperLink _ _ children) =
+  T.concat $ map parPartToText children
+parPartToText (Field _ children) =
   T.concat $ map parPartToText children
 parPartToText _                          = ""
 
