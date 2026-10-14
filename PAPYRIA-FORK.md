@@ -66,13 +66,12 @@ current `X.Y-papyria` until a release includes the patch.
 
 ## Carried patches
 
-Current release branch: **`3.12-papyria`** (based on pandoc 3.12).
+Current release branch: **`3.12.1-papyria`** (based on pandoc 3.12.1).
 
 | Branch | Upstream issue / PR | Commit | Status |
 |---|---|---|---|
-| _(deleted)_ `fix-11862` | jgm/pandoc#11862 / jgm/pandoc#11863 | Markdown writer: escape list markers after a line break. | Merged 2026-10-06 (after 3.12). Carried until 3.13. |
 | `fix-fldsimple` | jgm/pandoc#11944 / jgm/pandoc#11946 | Docx reader: read w:fldSimple fields. | Open |
-| `fix-wide-grid-tables` | jgm/pandoc#11945 / jgm/pandoc#11947 | Markdown writer: write wide tables as grid tables. | Open |
+| _(deleted)_ `fix-wide-grid-tables` | jgm/pandoc#11945 / jgm/pandoc#11947 | Markdown writer: write wide tables as grid tables. | Merged 2026-10-10 (after 3.12.1). Carried until the next release; cherry-picked from upstream's merge commit `763c555a05`. |
 
 ## Accepted upstream
 
@@ -80,4 +79,4 @@ Patches that a pandoc release includes, so we no longer carry them.
 
 | Upstream issue / PR | Commit | Released in |
 |---|---|---|
-| _(none yet)_ | | |
+| jgm/pandoc#11862 / jgm/pandoc#11863 | Markdown writer: escape list markers after a line break. | 3.12.1 |
