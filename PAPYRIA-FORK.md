@@ -72,6 +72,7 @@ Current release branch: **`3.12.1-papyria`** (based on pandoc 3.12.1).
 |---|---|---|---|
 | `fix-fldsimple` | jgm/pandoc#11944 / jgm/pandoc#11946 | Docx reader: read w:fldSimple fields. | Open |
 | `fix-docx-note-deleted-paragraph` | jgm/pandoc#11971 / jgm/pandoc#11972 | Docx reader: keep tracked paragraph marks inside notes. | Open |
+| `fix-emphasis-flanking` | not yet filed | Markdown writers: keep emphasis delimiters flanking | Carried. The upstream issue and PR wait until a production rerun confirms the fix (PAP-787). |
 | _(deleted)_ `fix-wide-grid-tables` | jgm/pandoc#11945 / jgm/pandoc#11947 | Markdown writer: write wide tables as grid tables. | Merged 2026-10-10 (after 3.12.1). Carried until the next release; cherry-picked from upstream's merge commit `763c555a05`. |
 
 ## Accepted upstream
