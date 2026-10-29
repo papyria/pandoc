@@ -5,9 +5,7 @@ This is [Papyria](https://github.com/papyria)'s fork of
 here, whether you are a person or an agent. Most of it is about git: which branch a
 change goes on, and where it must never go.
 
-We build our own pandoc (the `pandoc-server` image, from `Dockerfile.pandoc-server`
-in [papyria-workflows](https://github.com/papyria/papyria-workflows)) because we
-depend on fixes that no pandoc release has yet. We do not want a fork that drifts
+We build our own pandoc because we depend on fixes that no pandoc release has yet. We do not want a fork that drifts
 away from upstream. Every patch we carry is on its way upstream, and we drop it as
 soon as a pandoc release includes it.
 
@@ -25,9 +23,10 @@ soon as a pandoc release includes it.
    `X.Y` with every patch that release lacks cherry-picked onto it (`-x`). Never
    from `upstream/main`, which ships unreleased changes we have not asked for.
 5. **Every patch goes upstream**, as an issue and a pull request on jgm/pandoc that
-   follows pandoc's own conventions (below). It may bake on the integration branch
-   first while we try it on real documents, but a patch we never intend to send
-   upstream is not allowed. While it bakes, it has a row in
+   follows pandoc's own conventions (below). First it bakes on the integration branch
+   while we try it on real documents. We open the upstream issue only once we have
+   learned that the patch is good. A patch we never intend to send upstream is not
+   allowed. While it bakes, it has a row in
    [Carried patches](#carried-patches) and an open Papyria Linear issue that stays open
    until the upstream PR exists.
 6. **Before you write a patch, check upstream.** Search jgm/pandoc's issues, pull
@@ -41,7 +40,7 @@ soon as a pandoc release includes it.
 |---|---|---|
 | `main` | `upstream/main`, plus `AGENTS.md`. | Syncing with upstream, and edits to this file. |
 | `fix-<topic>` | One patch, on `upstream/main`. The head branch of its upstream PR. | The patch author. Rebased on `upstream/main` regularly. |
-| `X.Y-papyria` | Release tag `X.Y` plus every patch it lacks, cherry-picked with `-x`. What papyria-workflows builds. | Whoever adds a patch or moves to a new release. |
+| `X.Y-papyria` | Release tag `X.Y` plus every patch it lacks, cherry-picked with `-x`. What we build. | Whoever adds a patch or moves to a new release. |
 
 ```mermaid
 gitGraph
@@ -66,12 +65,11 @@ from a release tag and never takes anything from `main` except a cherry-picked p
 ### A new patch
 
 1. Check upstream first (rule 6).
-2. Open an issue on jgm/pandoc with a minimal, reproducible example: the smallest
-   input, the command, what pandoc writes and what it should write. Not a customer's
-   document. You may wait with this while the patch bakes (rule 5), but write the
-   reproduction now, while it is fresh.
+2. Write down a minimal, reproducible example: the smallest input, the command, what
+   pandoc writes and what it should write. Never a customer's document. It becomes
+   the test now and the upstream issue later.
 3. `git fetch upstream && git switch -c fix-<topic> upstream/main`.
-4. Make one logical commit with a test under `test/command/<issue>.md`. Follow
+4. Make one logical commit with a test under `test/command/<topic>.md`. Follow
    upstream's [CONTRIBUTING.md](CONTRIBUTING.md): a first line of about 50
    characters (the writer or reader it touches, then what it does:
    `Docx reader: read w:fldSimple fields.`), a blank line, then the why. Keep every
@@ -81,14 +79,22 @@ from a release tag and never takes anything from `main` except a cherry-picked p
 5. Build and run the full test suite, plus the `pandoc-lua-engine` suite
    ([Build and test](#build-and-test)).
 6. Push the branch to this fork.
-7. Cherry-pick the commit with `-x` onto the current `X.Y-papyria`, run the tests
-   there too, and push.
-8. Pin the new `X.Y-papyria` head in papyria-workflows' `Dockerfile.pandoc-server`
-   ([Using a build in papyria-workflows](#using-a-build-in-papyria-workflows)).
-9. Add the patch to [Carried patches](#carried-patches), on `main`, with its Linear
-   issue.
-10. When it has baked: open the upstream PR from `fix-<topic>` against `jgm/pandoc:main`,
-    saying `Closes #<issue>`, and update the row.
+7. Bring every other open `fix-*` branch current with `upstream/main`
+   ([Keeping a patch current](#keeping-a-patch-current)). Do this each time a patch
+   is added to the integration branch.
+8. Cherry-pick the commit with `-x` onto the current `X.Y-papyria`. If it does not
+   apply, resolve the conflicts on `X.Y-papyria`
+   ([When a cherry-pick does not apply](#when-a-cherry-pick-does-not-apply)). Run the
+   tests there too, and push.
+9. Our build pins an `X.Y-papyria` commit by its SHA, so moving the branch ships
+   nothing by itself: move the pin to the new head.
+10. Add the patch to [Carried patches](#carried-patches), on `main`, as **Baking**,
+    with its Linear issue.
+11. Let it bake. Use it on real documents until we have learned that it is good.
+12. Open an issue on jgm/pandoc with the example from step 2.
+13. Open the upstream PR from `fix-<topic>` against `jgm/pandoc:main`, saying
+    `Closes #<issue>`. Rename the test to `test/command/<issue>.md` if upstream's
+    convention asks for it, and update the row.
 
 ```mermaid
 gitGraph
@@ -118,7 +124,21 @@ git push --force-with-lease
 
 Force-pushing a `fix-*` branch is fine: it is the PR's head branch, and nothing
 builds from it. If the rebase changed the patch itself, cherry-pick the new commit
-onto `X.Y-papyria` and pin the new head.
+onto `X.Y-papyria` and move the pin to the new head.
+
+A patch always targets `upstream/main`, never the release tag, even when the two
+have drifted apart. That is the version upstream will review and merge.
+
+### When a cherry-pick does not apply
+
+`X.Y-papyria` starts from a release tag, and `upstream/main` moves on after it. Now
+and then `main` has changed the code a patch touches so much that the patch, written
+against `main`, does not apply to the tag. Resolve the conflicts on `X.Y-papyria`,
+keeping the patch's intent in the tag's code, then run the tests and
+`git cherry-pick --continue`. Conflicts on the tag side are usually the reverse of
+what `main` changed: the tag lacks code the patch expects.
+
+Never change the `fix-*` branch to fit the tag. It stays on `upstream/main`.
 
 ### A fix upstream has merged but not released
 
@@ -139,7 +159,7 @@ When pandoc `X.Z` is released:
    that we carry.
 5. `rm -rf dist-newstyle`, then build and run the tests ([Build and test](#build-and-test)).
    Push.
-6. Pin the new head in papyria-workflows.
+6. Move our build's pin to the new head.
 7. Delete the previous `X.Y-papyria` only after nothing pins one of its commits.
 
 ```mermaid
@@ -159,9 +179,8 @@ gitGraph
     cherry-pick id: "B, rebased"
 ```
 
-If a release includes every patch, we drop the fork: papyria-workflows goes back to
-the stock `pandoc/core` image, as the deletion trigger in its
-`Dockerfile.pandoc-server` describes.
+If a release includes every patch, we drop the fork and build from the stock pandoc
+release.
 
 ### When an upstream PR is merged
 
@@ -202,21 +221,13 @@ cabal test --enable-tests pandoc:test-pandoc pandoc-lua-engine:test-pandoc-lua-e
   type, and made patch tests fail as if the patch were missing.
 - `-p <pattern>` after `--test-options=` runs a subset, such as one command test.
 
-## Using a build in papyria-workflows
-
-papyria-workflows' `Dockerfile.pandoc-server` builds `pandoc-cli` from one commit of
-this fork: `PANDOC_COMMIT`, the head of the current `X.Y-papyria`. Pin the full SHA,
-not the branch name: the image is rebuilt only when that file changes. Moving the
-branch without a new pin ships nothing. Its version guard (`grep -q '3\.13'`) must
-match the release.
-
 ## Carried patches
 
 Current integration branch: **`3.13-papyria`** (based on pandoc 3.13).
 
 | Branch | Upstream issue / PR | Commit | Status | Why Papyria needs it |
 |---|---|---|---|---|
-| `fix-emphasis-flanking` | jgm/pandoc#11985 / jgm/pandoc#11986 | Markdown writer: keep emphasis delimiters flanking | PR open | Italics starting with punctuation after a word were written `word*. x*`, which CommonMark readers read as literal asterisks (PAP-787). |
+| `fix-emphasis-flanking` | jgm/pandoc#11985 / jgm/pandoc#11986 | Markdown writer: keep emphasis delimiters flanking | Upstream PR open | Italics starting with punctuation after a word were written `word*. x*`, which CommonMark readers read as literal asterisks (PAP-787). |
 | _(upstream)_ | jgm/pandoc#12003 | EPUB writer: fix id clash with added title header. (`d4c1c4784`) | Merged 2026-10-28, after 3.13 | The leading untitled section took a chapter heading's id, so the nav and links pointed at the wrong file (PAP-709). |
 
 ## Accepted upstream
