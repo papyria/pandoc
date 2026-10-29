@@ -227,7 +227,7 @@ Current integration branch: **`3.13-papyria`** (based on pandoc 3.13).
 
 | Branch | Upstream issue / PR | Commit | Status | Why Papyria needs it |
 |---|---|---|---|---|
-| `fix-emphasis-flanking` | jgm/pandoc#11985 / jgm/pandoc#11986 | Markdown writer: keep emphasis delimiters flanking | Upstream PR open | Italics starting with punctuation after a word were written `word*. x*`, which CommonMark readers read as literal asterisks (PAP-787). |
+| `fix-emphasis-flanking` | jgm/pandoc#11985 / jgm/pandoc#11986 | Markdown writer: keep emphasis delimiters flanking | Upstream PR open | Italics starting with punctuation after a word were written `word*. x*`, which CommonMark readers read as literal asterisks (PAP-787). A struck-through page break was written `~~\~~`, which reads back as the text "~~", so the redline saw a paragraph the DOCX does not have (PAP-1085). |
 | _(upstream)_ | jgm/pandoc#12003 | EPUB writer: fix id clash with added title header. (`d4c1c4784`) | Merged 2026-10-28, after 3.13 | The leading untitled section took a chapter heading's id, so the nav and links pointed at the wrong file (PAP-709). |
 
 ## Accepted upstream
