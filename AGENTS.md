@@ -48,7 +48,7 @@ gitGraph
     branch 3.13-papyria
     checkout main
     commit id: "upstream 1"
-    branch fix-emphasis-flanking
+    branch fix-topic
     commit id: "fix + test"
     checkout main
     commit id: "upstream 2"
@@ -227,7 +227,6 @@ Current integration branch: **`3.13-papyria`** (based on pandoc 3.13).
 
 | Branch | Upstream issue / PR | Commit | Status | Why Papyria needs it |
 |---|---|---|---|---|
-| `fix-emphasis-flanking` | jgm/pandoc#11985 / jgm/pandoc#11986 | Markdown writer: keep emphasis delimiters flanking | Upstream PR open | Italics starting with punctuation after a word were written `word*. x*`, which CommonMark readers read as literal asterisks (PAP-787). A struck-through page break was written `~~\~~`, which reads back as the text "~~", so the redline saw a paragraph the DOCX does not have (PAP-1085). |
 | _(upstream)_ | jgm/pandoc#12003 | EPUB writer: fix id clash with added title header. (`d4c1c4784`) | Merged 2026-10-28, after 3.13 | The leading untitled section took a chapter heading's id, so the nav and links pointed at the wrong file (PAP-709). |
 
 ## Accepted upstream
@@ -240,3 +239,11 @@ Patches that a pandoc release includes, so we no longer carry them.
 | jgm/pandoc#11944 / jgm/pandoc#11946 | Docx reader: read w:fldSimple fields. | 3.13 |
 | jgm/pandoc#11945 / jgm/pandoc#11947 | Markdown writer: write wide tables as grid tables. | 3.13 |
 | jgm/pandoc#11971 / jgm/pandoc#11972 | Docx reader: keep tracked paragraph marks inside notes. | 3.13 |
+
+## Declined upstream
+
+Patches upstream will not take, so Papyria solves the problem outside pandoc.
+
+| Upstream issue / PR | Commit | Instead |
+|---|---|---|
+| jgm/pandoc#11985 / jgm/pandoc#11986 | Markdown writer: keep emphasis delimiters flanking | Moving characters out of emphasis changes the document, which the writer must not do. papyria-workflows' `PandocClient` moves them in the AST between reading and writing (PAP-1123). |
