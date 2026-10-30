@@ -253,6 +253,7 @@ Current integration branch: **`3.13-papyria`** (based on pandoc 3.13).
 
 | Branch | Upstream issue / PR | Commit | Status | Why Papyria needs it |
 |---|---|---|---|---|
+| `fix-list-marker-in-emphasis` | Draft: papyria/pandoc#3 | Markdown writer: escape list markers after a line break in emphasis. | Baking since 2026-10-30 | A dash after a line break inside bold or italics, such as a quotation's attribution, was read back as a list: by pandoc inside a list item, and by CommonMark readers anywhere (PAP-1166). |
 | _(upstream)_ | jgm/pandoc#12003 | EPUB writer: fix id clash with added title header. (`d4c1c4784`) | Merged 2026-10-28, after 3.13 | The leading untitled section took a chapter heading's id, so the nav and links pointed at the wrong file (PAP-709). |
 
 ## Accepted upstream
