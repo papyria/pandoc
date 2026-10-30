@@ -341,7 +341,7 @@ moveUnflankableEdgesOut = go False
         Just (rewrap, contents)
           | opensUnflanked afterWord contents ||
             closesUnflanked beforeWord contents
-          , not (null inner) || all isBreakingSpace (leading ++ trailing) ->
+          , not (null inner) || all isEdgeWhitespace (leading ++ trailing) ->
               leading ++ [rewrap inner | not (null inner)] ++ trailing ++
                 go (not (null trailing) && endsWithWord (last trailing)) xs
           where
@@ -349,9 +349,11 @@ moveUnflankableEdgesOut = go False
             (leading, rest) = leadingEdge afterWord contents
             (inner, trailing) = trailingEdge beforeWord rest
         _ -> x : go (endsWithWord x) xs
-    emphasized (Emph ils) = Just (Emph, ils)
-    emphasized (Strong ils) = Just (Strong, ils)
-    emphasized (Strikeout ils) = Just (Strikeout, ils)
+    -- The contents are treated first, so that nested emphasis which
+    -- collapses to its edge whitespace is seen at this element's edge.
+    emphasized (Emph ils) = Just (Emph, moveUnflankableEdgesOut ils)
+    emphasized (Strong ils) = Just (Strong, moveUnflankableEdgesOut ils)
+    emphasized (Strikeout ils) = Just (Strikeout, moveUnflankableEdgesOut ils)
     emphasized _ = Nothing
     endsWithWord (Str t) = maybe False (isWordChar . snd) (T.unsnoc t)
     endsWithWord _ = False
@@ -419,6 +421,13 @@ isBreakingSpace Space = True
 isBreakingSpace SoftBreak = True
 isBreakingSpace LineBreak = True
 isBreakingSpace _ = False
+
+-- | Whitespace moved out of emphasis, whether an inline of its own or the
+-- characters of a 'Str', such as a no-break space. Emphasis left with
+-- nothing but this has nothing visible to format.
+isEdgeWhitespace :: Inline -> Bool
+isEdgeWhitespace (Str t) = T.all isSpace t
+isEdgeWhitespace i = isBreakingSpace i
 
 breaksFlanking :: Bool -> Char -> Bool
 breaksFlanking nextToWord c = isSpace c || (nextToWord && isEdgePunctuation c)
