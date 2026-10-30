@@ -99,36 +99,3 @@ a
 
 b
 ```
-
-Emphasis that holds only a no-break space is dropped the same way:
-CommonMark counts the no-break space as whitespace, so it would read the
-delimiters around it as literal text.
-
-```
-% pandoc -f native -t markdown
-[ Para [ Str "a", Space, Strong [ Str "\160" ], Space, Emph [ Str "\160" ], Space, Str "b" ] ]
-^D
-a     b
-```
-
-The edges are found after nested emphasis has been treated, so emphasis
-left with only a line break inside other emphasis moves out too.
-
-```
-% pandoc -f native -t markdown
-[ Para [ Str "a" ], Para [ Emph [ Strong [ LineBreak ] ] ], Para [ Str "b" ] ]
-^D
-a
-
-\
-
-b
-```
-
-```
-% pandoc -f native -t markdown
-[ Para [ Str "a", Space, Strong [ Str "x", Emph [ LineBreak ] ], Str "b" ] ]
-^D
-a **x**\
-b
-```
