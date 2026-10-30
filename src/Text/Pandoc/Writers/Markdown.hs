@@ -456,11 +456,22 @@ blockToMarkdown' opts (Plain inlines) = do
                            isEnabled Ext_all_symbols_escapable opts)
             -> RawInline (Format "markdown") "\\" : ils
           _ -> ils
-  -- apply escapeLineStart to the head of the list, then after each LineBreak
+  -- apply escapeLineStart to the head of the list, then after each LineBreak,
+  -- including one inside emphasis or a span, whose text starts the new line
   let go ils = case ils of
                  []             -> []
                  (LineBreak:ys) -> LineBreak : go (escapeLineStart ys)
-                 (y:ys)         -> y : go ys
+                 (y:ys)         -> goInside y : go ys
+      goInside il = case il of
+                 Emph xs        -> Emph (go xs)
+                 Underline xs   -> Underline (go xs)
+                 Strong xs      -> Strong (go xs)
+                 Strikeout xs   -> Strikeout (go xs)
+                 SmallCaps xs   -> SmallCaps (go xs)
+                 Quoted q xs    -> Quoted q (go xs)
+                 Span attr xs   -> Span attr (go xs)
+                 Link attr xs t -> Link attr (go xs) t
+                 _              -> il
   let inlines' =
         if variant == PlainText
            then inlines
