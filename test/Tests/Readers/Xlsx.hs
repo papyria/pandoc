@@ -41,8 +41,16 @@ testCompareWithOpts opts testName xlsxFP nativeFP =
 tests :: [TestTree]
 tests = [ testGroup "basic"
           [ testCompare
+            "inline and rich-text strings"
+            "xlsx-reader/strings.xlsx"
+            "xlsx-reader/strings.native"
+          , testCompare
             "sheet extraction"
             "xlsx-reader/basic.xlsx"
             "xlsx-reader/basic.native"
+          , testCompare
+            "package-absolute relationship targets"
+            "xlsx-reader/absolute-targets.xlsx"
+            "xlsx-reader/absolute-targets.native"
           ]
         ]

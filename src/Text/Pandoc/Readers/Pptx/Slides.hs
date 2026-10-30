@@ -19,6 +19,7 @@ import Data.List (find)
 import Data.Maybe (mapMaybe)
 import qualified Data.Text as T
 import Data.Text (Text)
+import qualified Text.Pandoc.Builder as B
 import Text.Pandoc.Class.PandocMonad (PandocMonad)
 import Text.Pandoc.Definition
 import Text.Pandoc.Options (ReaderOptions)
@@ -54,7 +55,7 @@ slideToBlocks archive slide = do
       headerText = if T.null title
                    then "Slide " <> T.pack (show n)
                    else title
-      header = Header 2 (slideIdent, [], []) [Str headerText]
+      header = Header 2 (slideIdent, [], []) (B.toList (B.text headerText))
 
   -- Parse shapes and convert to blocks
   case findChildByName ns "p" "cSld" slideElem >>=
@@ -62,11 +63,20 @@ slideToBlocks archive slide = do
     Nothing -> return [header]
     Just spTree -> do
       -- Filter out title placeholder shapes before parsing
-      let allShapeElems = onlyElems $ elContent spTree
+      let allShapeElems = ungroupShapes ns (onlyElems $ elContent spTree)
           nonTitleShapeElems = filter (not . isTitlePlaceholder ns) allShapeElems
           shapes = mapMaybe (parseShape ns) nonTitleShapeElems
       shapeBlocks <- concat <$> mapM (shapeToBlocks archive rels) shapes
       return $ header : shapeBlocks
+
+-- | Replace each group shape (@p:grpSp@, possibly nested) by the shapes
+-- it contains, keeping document order.
+ungroupShapes :: NameSpaces -> [Element] -> [Element]
+ungroupShapes ns = concatMap ungroup
+  where
+    ungroup el
+      | isElem ns "p" "grpSp" el = ungroupShapes ns (elChildren el)
+      | otherwise = [el]
 
 -- | Extract title from title placeholder
 extractSlideTitle :: NameSpaces -> Element -> Text

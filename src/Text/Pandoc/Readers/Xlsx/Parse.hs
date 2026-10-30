@@ -30,8 +30,10 @@ import qualified Data.Text.Lazy.Encoding as TL
 import Data.Text (Text)
 import qualified Data.Vector as V
 import System.FilePath (splitFileName)
+import qualified System.FilePath.Posix as Posix
 import Text.Pandoc.Readers.OOXML.Shared
 import Text.Pandoc.Readers.Xlsx.Cells
+import Text.Pandoc.Shared (collapseFilePath)
 import Text.Pandoc.XML.Light
 import Text.Read (readMaybe)
 
@@ -88,21 +90,20 @@ archiveToXlsx archive = do
   -- Parse shared strings (look for sharedStrings relationship)
   sharedStrings <- case findRelWithTarget workbookRels "sharedStrings" of
     Just (_, target) -> do
-      let path = "xl/" ++ T.unpack target
-      el <- loadXMLFromArchive archive path
+      el <- loadXMLFromArchive archive (resolveTarget workbookPath target)
       parseSharedStrings el
     Nothing -> Right V.empty
 
   -- Parse styles
   styles <- case findRelWithTarget workbookRels "styles" of
     Just (_, target) -> do
-      let path = "xl/" ++ T.unpack target
-      el <- loadXMLFromArchive archive path
+      el <- loadXMLFromArchive archive (resolveTarget workbookPath target)
       parseStyles el
     Nothing -> Right $ Styles V.empty
 
   -- Parse worksheets
-  sheets <- mapM (\sheetInfo -> parseSheet archive workbookRels sharedStrings styles sheetInfo)
+  sheets <- mapM (parseSheet archive workbookPath workbookRels sharedStrings
+                    styles)
                  (workbookSheetNames workbook)
 
   return $ Xlsx workbook sheets sharedStrings styles
@@ -119,7 +120,8 @@ getWorkbookXmlPath archive = do
     Nothing -> Left "No workbook.xml relationship found"
     Just rel -> do
       target <- maybeToEither "Missing Target" $ findAttr (unqual "Target") rel
-      return $ T.unpack target
+      -- The root relationships belong to the package itself.
+      return $ resolveTarget "" target
   where
     isOfficeDocRel el =
       case (findAttr (unqual "Type") el, findAttr (unqual "Target") el) of
@@ -153,13 +155,21 @@ parseSheetRef ns (idx, sheetElem) = do
 parseSharedStrings :: Element -> Either Text SharedStrings
 parseSharedStrings sstElem = do
   let siElems = filter (\e -> qName (elName e) == "si") (onlyElems $ elContent sstElem)
-      strings = map extractString siElems
+      strings = map stringItemText siElems
   return $ V.fromList strings
-  where
-    extractString siElem =
-      case find (\e -> qName (elName e) == "t") (onlyElems $ elContent siElem) of
-        Just tElem -> strContent tElem
-        Nothing -> getAllText siElem
+
+-- | Text of a string item (@si@ in the shared strings, @is@ in an inline
+-- string cell): its @t@, or the @t@ of its rich-text runs (@r@)
+-- concatenated as written. Phonetic runs (@rPh@) are skipped.
+stringItemText :: Element -> Text
+stringItemText el = T.concat
+  [ strContent t
+  | child <- elChildren el
+  , t <- case qName (elName child) of
+           "t" -> [child]
+           "r" -> filter (\e -> qName (elName e) == "t") (elChildren child)
+           _   -> []
+  ]
 
 -- | Parse styles (fonts only for MVP)
 parseStyles :: Element -> Either Text Styles
@@ -180,13 +190,13 @@ parseFont _ns fontElem =
     }
 
 -- | Parse individual worksheet
-parseSheet :: Archive -> [(Text, Text)] -> SharedStrings -> Styles -> (SheetId, Text, Text) -> Either Text XlsxSheet
-parseSheet archive rels sharedStrings styles (sid, name, relId) = do
+parseSheet :: Archive -> FilePath -> [(Text, Text)] -> SharedStrings -> Styles
+           -> (SheetId, Text, Text) -> Either Text XlsxSheet
+parseSheet archive wbPath rels sharedStrings styles (sid, name, relId) = do
   target <- maybeToEither ("Sheet relationship not found: " <> relId) $
             lookup relId rels
 
-  let sheetPath = "xl/" ++ T.unpack target
-  sheetElem <- loadXMLFromArchive archive sheetPath
+  sheetElem <- loadXMLFromArchive archive (resolveTarget wbPath target)
 
   cells <- parseSheetCells sheetElem sharedStrings styles
 
@@ -227,6 +237,11 @@ parseCell sharedStrings styles cElem = do
                   Just idx | idx >= 0 && idx < V.length sharedStrings ->
                     TextValue (sharedStrings V.! idx)
                   _ -> EmptyValue
+              else if cellType == "inlineStr"
+                then
+                  -- Inline string, held in the cell itself rather than in <v>
+                  maybe EmptyValue (TextValue . stringItemText) $
+                    find (\e -> qName (elName e) == "is") (elChildren cElem)
               else if T.null vText
                 then EmptyValue
                 else
@@ -275,6 +290,15 @@ relsPathFor path =
   let (dir, file) = splitFileName path
    in dir ++ "/_rels/" ++ file ++ ".rels"
 
+-- | Resolve a relationship target to an archive path. A target starting
+-- with @/@ is relative to the package root; any other target is relative
+-- to the folder of the part that holds the relationship.
+resolveTarget :: FilePath -> Text -> FilePath
+resolveTarget source target =
+  case T.unpack target of
+    '/':path -> path
+    path -> collapseFilePath (Posix.takeDirectory source Posix.</> path)
+
 findRelWithTarget :: [(Text, Text)] -> Text -> Maybe (Text, Text)
 findRelWithTarget rels targetName =
   find (\(_, target) -> targetName `T.isInfixOf` target) rels
@@ -282,14 +306,6 @@ findRelWithTarget rels targetName =
 maybeToEither :: Text -> Maybe a -> Either Text a
 maybeToEither err Nothing = Left err
 maybeToEither _ (Just x) = Right x
-
-getAllText :: Element -> Text
-getAllText el =
-  let textFromContent (Text cdata) = cdData cdata
-      textFromContent (Elem e) = getAllText e
-      textFromContent _ = ""
-      texts = map textFromContent (elContent el)
-   in T.unwords $ filter (not . T.null) texts
 
 addContext :: Either Text a -> Text -> Either Text a
 addContext (Right x) _ = Right x
