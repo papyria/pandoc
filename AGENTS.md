@@ -18,7 +18,8 @@ soon as a pandoc release includes it.
 3. **Never merge a patch into `main`.** `main` mirrors `upstream/main`. The only
    commits on it that jgm/pandoc does not have are the ones that touch `AGENTS.md`.
    A pull request into this fork's `main` is always wrong, whatever it changes
-   besides this file.
+   besides this file, with one exception: a patch's
+   [draft PR](#the-draft-pr), which stays a draft and is never merged.
 4. **We build from an integration branch, `X.Y-papyria`**: the pandoc release tag
    `X.Y` with every patch that release lacks cherry-picked onto it (`-x`). Never
    from `upstream/main`, which ships unreleased changes we have not asked for.
@@ -79,22 +80,47 @@ from a release tag and never takes anything from `main` except a cherry-picked p
 5. Build and run the full test suite, plus the `pandoc-lua-engine` suite
    ([Build and test](#build-and-test)).
 6. Push the branch to this fork.
-7. Bring every other open `fix-*` branch current with `upstream/main`
+7. Open the patch's [draft PR](#the-draft-pr) in this fork, with the upstream issue
+   and PR written out while the patch is fresh.
+8. Bring every other open `fix-*` branch current with `upstream/main`
    ([Keeping a patch current](#keeping-a-patch-current)). Do this each time a patch
    is added to the integration branch.
-8. Cherry-pick the commit with `-x` onto the current `X.Y-papyria`. If it does not
+9. Cherry-pick the commit with `-x` onto the current `X.Y-papyria`. If it does not
    apply, resolve the conflicts on `X.Y-papyria`
    ([When a cherry-pick does not apply](#when-a-cherry-pick-does-not-apply)). Run the
    tests there too, and push.
-9. Our build pins an `X.Y-papyria` commit by its SHA, so moving the branch ships
-   nothing by itself: move the pin to the new head.
-10. Add the patch to [Carried patches](#carried-patches), on `main`, as **Baking**,
-    with its Linear issue.
-11. Let it bake. Use it on real documents until we have learned that it is good.
-12. Open an issue on jgm/pandoc with the example from step 2.
-13. Open the upstream PR from `fix-<topic>` against `jgm/pandoc:main`, saying
-    `Closes #<issue>`. Rename the test to `test/command/<issue>.md` if upstream's
-    convention asks for it, and update the row.
+10. Our build pins an `X.Y-papyria` commit by its SHA, so moving the branch ships
+    nothing by itself: move the pin to the new head.
+11. Add the patch to [Carried patches](#carried-patches), on `main`, as **Baking**,
+    with its Linear issue and its draft PR.
+12. Let it bake. Use it on real documents until we have learned that it is good.
+    Keep the draft current when the patch changes, and add what baking taught us.
+13. Open an issue on jgm/pandoc from the draft's **Issue** section.
+14. Open the upstream PR from `fix-<topic>` against `jgm/pandoc:main` from its
+    **Pull request** section, saying `Closes #<issue>`. Rename the test to
+    `test/command/<issue>.md` if upstream's convention asks for it, close the draft
+    PR with a link to the upstream one, and update the row.
+
+### The draft PR
+
+A patch that bakes keeps its upstream text in a draft pull request in this fork,
+from `fix-<topic>` into `main`, so the text is written while we still remember why
+and is ready when baking ends. Its diff is the patch alone, as long as `main` is
+synced ([Syncing `main`](#syncing-main)). It is never merged, never marked ready for
+review, and closed once the upstream PR exists.
+
+- **Title:** the upstream PR's, which is the commit's first line.
+- **Body:** two sections, copied to jgm/pandoc as they are.
+  - `## Issue`: the example from step 2, with the command, what pandoc writes and
+    what it should write.
+  - `## Pull request`: the commit message's why, plus what the patch does not do.
+- **Refer to upstream issues in backticks only**, as in `` `jgm/pandoc#11863` ``.
+  A real link adds a "mentioned this" entry to that upstream issue, which its
+  maintainers see before the patch has baked. A bare `#11863` points at this fork's
+  own numbering. Turn the backticks into links when the text goes upstream.
+- **This fork is public**, so the draft is too. Only minimal examples, never text
+  from a customer's document, and no Papyria Linear identifiers: they mean nothing
+  upstream.
 
 ```mermaid
 gitGraph
