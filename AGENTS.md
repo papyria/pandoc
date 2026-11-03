@@ -234,9 +234,21 @@ file is committed with `git add -f`. Don't change `.gitignore`.
 
 ```bash
 cabal update
-cabal test --enable-tests pandoc:test-pandoc pandoc-lua-engine:test-pandoc-lua-engine
+cabal test --disable-optimization --enable-tests \
+  pandoc:test-pandoc pandoc-lua-engine:test-pandoc-lua-engine
 ```
 
+- **Always pass `--disable-optimization` when working on a patch.** A bare
+  `cabal` command builds pandoc with `-O1`, which takes far longer. `make test`
+  passes the flag through `CABALOPTS`, but it runs only `test-pandoc`. The
+  unoptimized build lives apart from the optimized one (under `noopt/` in
+  `dist-newstyle`), so give the flag to every `cabal` command (`test`, `build`,
+  `run`, `list-bin`), or cabal starts a full optimized build. To try the patched
+  binary: `cabal run --disable-optimization pandoc-cli -- <args>`.
+- Use ghcup's GHC: put `$HOME/.ghcup/bin` first on `PATH`.
+- To check that a new test fails without the fix, stash the source change
+  (`git stash push -- src/`), run just that test with `-p` (below), then
+  `git stash pop`. Only the changed module and what depends on it rebuild.
 - `--enable-tests` is needed, or the solver drops the `pandoc-lua-engine` test suite
   and cabal refuses to run it.
 - If the solver rejects a version that a `.cabal` file asks for, the local Hackage
