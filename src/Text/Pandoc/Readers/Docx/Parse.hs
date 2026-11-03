@@ -1500,7 +1500,8 @@ elemToRunElems ns element
      || isElem ns "m" "r" element = do
        let qualName = elemName ns "w"
        let font = do
-                    fontElem <- findElement (qualName "rFonts") element
+                    fontElem <- findChildByName ns "w" "rPr" element
+                                  >>= findChildByName ns "w" "rFonts"
                     foldr ((<|>) . (flip findAttr fontElem . qualName))
                          Nothing ["ascii", "hAnsi"]
                       >>= textToFont
